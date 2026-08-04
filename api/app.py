@@ -7,20 +7,31 @@ app = Flask(__name__)
 def api_analyze():
     try:
         data = request.json
-        answer = data.get('answer', '')
-
+        answer = data.get('answer', '').strip()
+        
         if not answer:
             return jsonify({"success": False, "error": "No answer"}), 400
-
-        score = min(100, max(50, len(answer) // 5))
-
+        
+        # Better scoring logic
+        word_count = len(answer.split())
+        has_details = len(answer) > 50
+        has_structure = any(word in answer.lower() for word in ['first', 'second', 'however', 'therefore', 'because'])
+        
+        base_score = min(100, 50 + (word_count * 2))
+        if has_details:
+            base_score += 10
+        if has_structure:
+            base_score += 15
+        
+        score = min(100, base_score)
+        
         return jsonify({
             "success": True,
             "data": {
                 "score": score,
-                "feedback": "Excellent answer! Keep practicing.",
-                "strengths": ["Clear communication", "Well structured"],
-                "improvements": ["Add more examples", "Provide metrics"]
+                "feedback": "Good answer! Focus on structure and examples." if score < 75 else "Excellent response with clear reasoning.",
+                "strengths": ["Clear communication", "Good pacing"],
+                "improvements": ["Add more examples", "Provide metrics"] if score < 80 else ["Great job!"]
             }
         })
     except Exception as e:
