@@ -10,6 +10,22 @@ feedback.
 - **Questions** — 174 unique questions loaded from `Software_Questions.csv`,
   across 20 categories (System Design, DevOps, Front-end, Back-end, Security, …)
 
+## How an interview works
+
+Pick a **mode** and a **length** on the home page, answer that many questions,
+then get a summary with your average and a per-question breakdown.
+
+| Mode | Behaviour |
+|---|---|
+| **Normal** | Every question stays at Medium difficulty |
+| **Adaptive** | Starts at Medium; scoring 80+ moves you to Hard, scoring 50 or below moves you back to Medium |
+
+Adaptive deliberately moves between **Medium and Hard only**. The bank holds 92
+Medium and 76 Hard questions but just 6 Easy ones — an Easy tier would exhaust
+its pool and start repeating within a single interview.
+
+Lengths are Short (3 questions), Medium (5), and Long (8).
+
 ---
 
 ## Running it
@@ -62,7 +78,7 @@ npm run dev                     # http://localhost:5173
 
 | Variable | Default | What it does |
 |---|---|---|
-| `MODEL_PROVIDER` | `ollama` | Which backend grades answers |
+| `MODEL_PROVIDER` | `ollama` | `ollama` (local) or `groq` / `openai_compatible` (hosted) |
 | `OLLAMA_URL` | `http://localhost:11434` | Where Ollama is listening |
 | `OLLAMA_MODEL` | `mistral:7b-instruct` | Model name — **set this to your own model** |
 | `MODEL_TIMEOUT` | `120` | Seconds to wait for the model |
@@ -75,6 +91,25 @@ at it:
 ```bash
 OLLAMA_MODEL=my-interview-grader python app.py
 ```
+
+### Running deployed (no Ollama)
+
+Ollama needs several GB of RAM and cannot run on a free hosting tier, so a
+deployed instance needs a hosted model. Any OpenAI-compatible endpoint works —
+Groq, OpenRouter, Together — through the same provider:
+
+| Variable | Default | What it does |
+|---|---|---|
+| `LLM_BASE_URL` | `https://api.groq.com/openai/v1` | Endpoint base |
+| `LLM_API_KEY` | *(empty)* | Your key — without it the API falls back to the heuristic |
+| `LLM_MODEL` | `llama-3.3-70b-versatile` | Model name — **check the provider's current list** |
+
+```bash
+MODEL_PROVIDER=groq LLM_API_KEY=gsk_... python app.py
+```
+
+Switching providers is two variables (`LLM_BASE_URL`, `LLM_MODEL`) and no code
+change.
 
 ### Frontend (`.env`)
 

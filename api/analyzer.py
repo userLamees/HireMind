@@ -13,6 +13,13 @@ OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:11434')
 OLLAMA_MODEL = os.environ.get('OLLAMA_MODEL', 'mistral:7b-instruct')
 MODEL_TIMEOUT = float(os.environ.get('MODEL_TIMEOUT', '120'))
 
+# Hosted fallback for a deployed instance, where Ollama can't run. Any
+# OpenAI-compatible endpoint works — Groq, OpenRouter, Together — so switching
+# providers is a matter of changing LLM_BASE_URL and LLM_MODEL.
+LLM_BASE_URL = os.environ.get('LLM_BASE_URL', 'https://api.groq.com/openai/v1')
+LLM_API_KEY = os.environ.get('LLM_API_KEY', '')
+LLM_MODEL = os.environ.get('LLM_MODEL', 'llama-3.3-70b-versatile')
+
 PROMPT_TEMPLATE = """You are a senior software engineering interviewer.
 Grade the candidate's answer against the reference answer.
 
@@ -115,6 +122,53 @@ def _analyze_with_ollama(question, ideal_answer, answer, difficulty=''):
         raise ModelUnavailable(f'model output was not valid JSON: {exc}')
 
 
+def _analyze_with_openai_compatible(question, ideal_answer, answer, difficulty=''):
+    """Grade via any OpenAI-compatible chat endpoint (Groq by default)."""
+    if not LLM_API_KEY:
+        raise ModelUnavailable('LLM_API_KEY is not set')
+
+    prompt = PROMPT_TEMPLATE.format(
+        question=question,
+        difficulty=difficulty or 'Unknown',
+        ideal_answer=ideal_answer or '(none provided)',
+        answer=answer,
+    )
+
+    try:
+        response = requests.post(
+            f'{LLM_BASE_URL.rstrip("/")}/chat/completions',
+            headers={'Authorization': f'Bearer {LLM_API_KEY}'},
+            json={
+                'model': LLM_MODEL,
+                'messages': [{'role': 'user', 'content': prompt}],
+                # The prompt already says "Reply with JSON only", which JSON
+                # mode requires the request to mention.
+                'response_format': {'type': 'json_object'},
+                'temperature': 0.2,
+            },
+            timeout=MODEL_TIMEOUT,
+        )
+    except requests.RequestException as exc:
+        raise ModelUnavailable(f'cannot reach {LLM_BASE_URL}: {exc}')
+
+    if response.status_code != 200:
+        # The body carries the real reason (bad model name, quota, bad key).
+        raise ModelUnavailable(f'HTTP {response.status_code}: {response.text[:200]}')
+
+    try:
+        raw = response.json()['choices'][0]['message']['content']
+    except (ValueError, KeyError, IndexError) as exc:
+        raise ModelUnavailable(f'unexpected response envelope: {exc}')
+
+    try:
+        result = _normalize(json.loads(raw))
+    except json.JSONDecodeError as exc:
+        raise ModelUnavailable(f'model output was not valid JSON: {exc}')
+
+    result['model'] = LLM_MODEL
+    return result
+
+
 def _heuristic(answer, reason=''):
     """Fallback used when no model is reachable.
 
@@ -149,8 +203,12 @@ def _heuristic(answer, reason=''):
 
 def model_available():
     """Cheap reachability probe for the health endpoint."""
+    if MODEL_PROVIDER in ('groq', 'openai_compatible'):
+        return bool(LLM_API_KEY)
+
     if MODEL_PROVIDER != 'ollama':
         return False
+
     try:
         response = requests.get(f'{OLLAMA_URL.rstrip("/")}/api/tags', timeout=3)
         return response.status_code == 200
@@ -158,12 +216,20 @@ def model_available():
         return False
 
 
+PROVIDERS = {
+    'ollama': _analyze_with_ollama,
+    'groq': _analyze_with_openai_compatible,
+    'openai_compatible': _analyze_with_openai_compatible,
+}
+
+
 def analyze(question, ideal_answer, answer, difficulty=''):
     """Grade one answer. Always returns a dict; never raises."""
-    if MODEL_PROVIDER == 'ollama':
-        try:
-            return _analyze_with_ollama(question, ideal_answer, answer, difficulty)
-        except ModelUnavailable as exc:
-            return _heuristic(answer, reason=str(exc))
+    provider = PROVIDERS.get(MODEL_PROVIDER)
+    if provider is None:
+        return _heuristic(answer, reason=f'unknown MODEL_PROVIDER: {MODEL_PROVIDER}')
 
-    return _heuristic(answer, reason=f'unknown MODEL_PROVIDER: {MODEL_PROVIDER}')
+    try:
+        return provider(question, ideal_answer, answer, difficulty)
+    except ModelUnavailable as exc:
+        return _heuristic(answer, reason=str(exc))

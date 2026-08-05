@@ -1,11 +1,12 @@
 <script setup>
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { clearResult, session } from '../stores/session'
+import { advance, currentResult, session } from '../stores/session'
 
 const router = useRouter()
 
-const result = computed(() => session.result)
+const entry = computed(() => currentResult())
+const result = computed(() => entry.value?.result)
 const score = computed(() => result.value?.score ?? 0)
 
 // Ring geometry: 54px radius circle, dash offset drives the fill.
@@ -20,10 +21,15 @@ const verdict = computed(() => {
 })
 
 const usedModel = computed(() => result.value?.analysis_mode === 'model')
+const position = computed(() => `${session.answered.length} of ${session.total}`)
 
-function practiceAgain() {
-  clearResult()
-  router.push('/interview')
+const nextLabel = computed(() =>
+  session.finished ? 'See Summary' : `Next Question (${session.answered.length + 1}/${session.total})`,
+)
+
+function next() {
+  if (advance()) router.push('/interview')
+  else router.push('/summary')
 }
 </script>
 
@@ -34,10 +40,10 @@ function practiceAgain() {
         <router-link to="/" class="brand">
           <span aria-hidden="true">🧠</span> HIREMIND
         </router-link>
+        <span class="position">{{ position }}</span>
       </header>
 
-      <!-- Guarded: "Practice Again" clears the result, and this view re-renders
-           once before the route change completes. -->
+      <!-- Guarded: navigating away clears the entry before the route changes. -->
       <section v-if="result" class="card">
         <div class="score">
           <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
@@ -59,7 +65,7 @@ function practiceAgain() {
 
         <p class="verdict">{{ verdict }}</p>
 
-        <p v-if="session.question" class="asked">{{ session.question.question }}</p>
+        <p v-if="entry.question" class="asked">{{ entry.question.question }}</p>
 
         <div v-if="!usedModel" class="notice">
           Scored without the AI model — this is a rough estimate only. Start Ollama
@@ -87,9 +93,7 @@ function practiceAgain() {
           </div>
         </div>
 
-        <button class="btn practice" type="button" @click="practiceAgain">
-          Practice Again
-        </button>
+        <button class="btn next" type="button" @click="next">{{ nextLabel }}</button>
       </section>
     </div>
   </main>
@@ -97,6 +101,9 @@ function practiceAgain() {
 
 <style scoped>
 .bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 1.75rem;
 }
 
@@ -106,6 +113,11 @@ function practiceAgain() {
   font-size: 0.95rem;
   color: var(--accent);
   text-decoration: none;
+}
+
+.position {
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 .score {
@@ -226,7 +238,7 @@ function practiceAgain() {
   color: var(--warning);
 }
 
-.practice {
+.next {
   width: 100%;
   margin-top: 1.5rem;
 }

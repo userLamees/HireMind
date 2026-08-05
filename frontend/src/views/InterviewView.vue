@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import TimerBadge from '../components/TimerBadge.vue'
 import VoiceButton from '../components/VoiceButton.vue'
 import { analyzeAnswer, fetchRandomQuestion } from '../services/api'
-import { saveResult, session } from '../stores/session'
+import { askedIds, recordAnswer, session } from '../stores/session'
 
 const router = useRouter()
 
@@ -17,6 +17,8 @@ const submitting = ref(false)
 const error = ref('')
 const timer = ref(null)
 
+const position = computed(() => `Question ${session.answered.length + 1} of ${session.total}`)
+const progress = computed(() => (session.answered.length / session.total) * 100)
 const canSubmit = computed(() => answer.value.trim().length > 0 && !submitting.value)
 const wordCount = computed(() => answer.value.trim().split(/\s+/).filter(Boolean).length)
 
@@ -24,7 +26,11 @@ async function loadQuestion() {
   loading.value = true
   error.value = ''
   try {
-    question.value = await fetchRandomQuestion({ exclude: session.answeredIds })
+    question.value = await fetchRandomQuestion({
+      // Normal mode holds at Medium; adaptive mode moves this after each score.
+      difficulty: session.difficulty,
+      exclude: askedIds(),
+    })
   } catch (err) {
     error.value = err.message
   } finally {
@@ -49,7 +55,7 @@ async function submit() {
       question: question.value?.question,
       answer: answer.value.trim(),
     })
-    saveResult({ question: question.value, answer: answer.value.trim(), result })
+    recordAnswer({ question: question.value, answer: answer.value.trim(), result })
     router.push('/results')
   } catch (err) {
     error.value = err.message
@@ -62,7 +68,11 @@ function onExpired() {
   if (answer.value.trim()) submit()
 }
 
-onMounted(loadQuestion)
+onMounted(() => {
+  // Reaching /interview without starting from home leaves no config to run on.
+  if (!session.started) router.replace('/')
+  else loadQuestion()
+})
 </script>
 
 <template>
@@ -72,13 +82,20 @@ onMounted(loadQuestion)
         <router-link to="/" class="brand">
           <span aria-hidden="true">🧠</span> HIREMIND
         </router-link>
-        <TimerBadge
-          v-if="question && !submitting"
-          ref="timer"
-          :seconds="TIMER_SECONDS"
-          @expired="onExpired"
-        />
+        <div class="bar__right">
+          <span class="position">{{ position }}</span>
+          <TimerBadge
+            v-if="question && !submitting"
+            ref="timer"
+            :seconds="TIMER_SECONDS"
+            @expired="onExpired"
+          />
+        </div>
       </header>
+
+      <div class="progress" role="progressbar" :aria-valuenow="Math.round(progress)">
+        <div class="progress__bar" :style="{ width: `${progress}%` }"></div>
+      </div>
 
       <p v-if="loading" class="state">Loading your question…</p>
 
@@ -91,6 +108,7 @@ onMounted(loadQuestion)
         <div class="meta">
           <span class="tag">{{ question.category }}</span>
           <span class="tag">{{ question.difficulty }}</span>
+          <span v-if="session.mode === 'adaptive'" class="tag tag--mode">Adaptive</span>
         </div>
 
         <h1 class="question">{{ question.question }}</h1>
@@ -128,7 +146,13 @@ onMounted(loadQuestion)
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.bar__right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .brand {
@@ -137,6 +161,25 @@ onMounted(loadQuestion)
   font-size: 0.95rem;
   color: var(--accent);
   text-decoration: none;
+}
+
+.position {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.progress {
+  height: 4px;
+  margin-bottom: 1.75rem;
+  border-radius: 999px;
+  background: rgba(52, 196, 188, 0.14);
+  overflow: hidden;
+}
+
+.progress__bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.4s ease;
 }
 
 .state {
@@ -150,6 +193,12 @@ onMounted(loadQuestion)
   gap: 0.5rem;
   flex-wrap: wrap;
   margin-bottom: 1.1rem;
+}
+
+.tag--mode {
+  color: var(--warning);
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.09);
 }
 
 .question {
