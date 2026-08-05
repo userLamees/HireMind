@@ -2,15 +2,23 @@
   <img src="frontend/src/assets/logo-full.svg" alt="HireMind" width="260">
 </p>
 
+<p align="center">
+  <strong><a href="https://hiremind-web-6yxz.onrender.com">Try it live →</a></strong>
+</p>
+
+<p align="center">
+  <em>Hosted on Render's free tier — the first request after a quiet period
+  takes about a minute while the API wakes up.</em>
+</p>
+
 # HireMind
 
 Mock interview practice for **Software Development** engineers. You get a real
-interview question, write your answer, and a local AI model scores it with
-feedback.
+interview question, write your answer, and an AI model scores it with feedback.
 
 - **Frontend** — Vue 3 + Vite (`frontend/`)
 - **API** — Flask (`api/`)
-- **Model** — served locally through [Ollama](https://ollama.com)
+- **Model** — [Ollama](https://ollama.com) locally, Groq when deployed
 - **Questions** — 174 unique questions loaded from `Software_Questions.csv`,
   across 20 categories (System Design, DevOps, Front-end, Back-end, Security, …)
 
