@@ -1,6 +1,8 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import TeamCredits from '../components/TeamCredits.vue'
+import logoUrl from '../assets/logo.svg'
 import { LENGTHS, MODES, startInterview } from '../stores/session'
 
 const router = useRouter()
@@ -17,19 +19,19 @@ function begin() {
 <template>
   <main class="page home">
     <div class="container home__inner">
-      <div class="logo">
-        <span class="logo__icon" aria-hidden="true">🧠</span>
-        <span class="logo__text">HIREMIND</span>
+      <div class="logo rise">
+        <span class="logo__aura" aria-hidden="true"></span>
+        <img class="logo__img" :src="logoUrl" alt="HireMind" width="260" height="325" />
       </div>
 
-      <h1 class="title">Master Your Interview Skills</h1>
+      <h1 class="title rise" style="animation-delay: 90ms">Master Your Interview Skills</h1>
 
-      <p class="subtitle">
+      <p class="subtitle rise" style="animation-delay: 170ms">
         This app is built for <strong>Software Development</strong> engineers.
         Answer real interview questions and get an instant score with feedback.
       </p>
 
-      <fieldset class="choice">
+      <fieldset class="choice rise" style="animation-delay: 250ms">
         <legend class="choice__legend">Mode</legend>
         <div class="choice__row">
           <button
@@ -49,7 +51,7 @@ function begin() {
         </div>
       </fieldset>
 
-      <fieldset class="choice">
+      <fieldset class="choice rise" style="animation-delay: 320ms">
         <legend class="choice__legend">Interview length</legend>
         <div class="choice__row">
           <button
@@ -69,9 +71,11 @@ function begin() {
         </div>
       </fieldset>
 
-      <button class="btn btn--lg start" type="button" @click="begin">
+      <button class="btn btn--lg start rise" style="animation-delay: 400ms" type="button" @click="begin">
         Start Interview Practice
       </button>
+
+      <TeamCredits class="rise" style="animation-delay: 480ms" />
     </div>
   </main>
 </template>
@@ -86,23 +90,51 @@ function begin() {
   max-width: 620px;
 }
 
+/* Positioning context so the aura can glow behind the mark. */
 .logo {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.7rem;
-  margin-bottom: 2rem;
+  position: relative;
+  display: inline-block;
+  margin-bottom: 1.75rem;
 }
 
-.logo__icon {
-  font-size: 2.6rem;
-  line-height: 1;
+.logo__img {
+  position: relative;
+  display: block;
+  width: min(240px, 58vw);
+  height: auto;
+  animation: bob 6s ease-in-out infinite;
 }
 
-.logo__text {
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  color: var(--accent);
+/* Sits over the brain only (the top ~60%), not the wordmark below it. */
+.logo__aura {
+  position: absolute;
+  top: 4%;
+  left: 50%;
+  width: 78%;
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(52, 196, 188, 0.28), transparent 66%);
+  animation: breathe 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes bob {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: translateX(-50%) scale(0.88);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.1);
+  }
 }
 
 .title {

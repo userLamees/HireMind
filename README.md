@@ -1,4 +1,8 @@
-# 🧠 HireMind
+<p align="center">
+  <img src="frontend/src/assets/logo-full.svg" alt="HireMind" width="260">
+</p>
+
+# HireMind
 
 Mock interview practice for **Software Development** engineers. You get a real
 interview question, write your answer, and a local AI model scores it with

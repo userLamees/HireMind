@@ -37,6 +37,38 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Entrance motion — elements settle upward into place. `both` keeps the
+   from-state applied during the delay, so staggered items don't flash first. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise 0.62s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* Motion is decoration here — nothing is conveyed by it alone, so it can all
+   be switched off without losing meaning. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    /* Without this the staggered delays still hold elements at opacity 0,
+       leaving the page blank for the length of the stagger. */
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 .page {
   min-height: 100vh;
   display: flex;

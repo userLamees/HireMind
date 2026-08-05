@@ -37,9 +37,7 @@ function next() {
   <main class="page">
     <div class="container">
       <header class="bar">
-        <router-link to="/" class="brand">
-          <span aria-hidden="true">🧠</span> HIREMIND
-        </router-link>
+        <router-link to="/" class="brand">HIRE<span class="brand__accent">MIND</span></router-link>
         <span class="position">{{ position }}</span>
       </header>
 
@@ -107,12 +105,17 @@ function next() {
   margin-bottom: 1.75rem;
 }
 
+/* Matches the logo lockup: HIRE in white, MIND in the accent colour. */
 .brand {
   font-weight: 800;
   letter-spacing: 0.14em;
   font-size: 0.95rem;
-  color: var(--accent);
+  color: var(--text);
   text-decoration: none;
+}
+
+.brand__accent {
+  color: var(--accent);
 }
 
 .position {
