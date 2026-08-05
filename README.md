@@ -130,6 +130,26 @@ Ollama cannot run on a free host, so a public deploy swaps it for a hosted
 model. Three free pieces: **Render** for the API, **Render Static Site** for the
 frontend, **Groq** for the model.
 
+### Fastest path: the Blueprint
+
+`render.yaml` in the repo root describes both services. In Render: **New →
+Blueprint → pick this repo**. Render creates the API and the static site with
+the right build commands, root directories, and the SPA rewrite already set,
+then prompts for the three values it can't guess:
+
+| Prompt | Value |
+|---|---|
+| `LLM_API_KEY` | your Groq key (`gsk_…`) |
+| `VITE_API_BASE` | the API service's URL, once Render shows it |
+| `ALLOWED_ORIGINS` | the static site's URL, once Render shows it |
+
+The last two only exist after the first deploy, so set them and redeploy — the
+frontend especially, since `VITE_API_BASE` is compiled into the bundle.
+
+The manual route is below if you'd rather click through it yourself.
+
+---
+
 Deploy in this order — each step needs a URL from the one before it.
 
 ### 1. Groq API key
@@ -168,6 +188,16 @@ New → Static Site → this repo. Settings:
 | Root Directory | `frontend` |
 | Build Command | `npm ci && npm run build` |
 | Publish Directory | `dist` |
+
+Then add a **Redirect/Rewrite** rule under the service's settings:
+
+| Source | Destination | Action |
+|---|---|---|
+| `/*` | `/index.html` | Rewrite |
+
+> ⚠️ Skip this and `/interview`, `/results`, and `/summary` all return 404 —
+> vue-router serves them client-side, so there is no file at those paths. Any
+> page refresh mid-interview would break. The Blueprint sets this for you.
 
 Environment variable — **set this before the first build**:
 
