@@ -28,15 +28,18 @@ ollama pull mistral:7b-instruct # or whichever model you want to use
 ```bash
 cd api
 pip install -r requirements.txt
-python app.py                   # http://localhost:5000
+python app.py                   # http://localhost:5001
 ```
 
 Check that the model was found:
 
 ```bash
-curl http://localhost:5000/api/health
+curl http://localhost:5001/api/health
 # {"status":"ok","questions_loaded":174,"model_available":true, ...}
 ```
+
+The API listens on **5001**, not 5000, because macOS reserves port 5000 for
+AirPlay Receiver. Override with `PORT=... python app.py` if 5001 is taken too.
 
 If `model_available` is `false`, the API still works — it falls back to a rough
 word-count estimate and **says so in the response and in the UI**. It never
@@ -64,7 +67,7 @@ npm run dev                     # http://localhost:5173
 | `OLLAMA_MODEL` | `mistral:7b-instruct` | Model name — **set this to your own model** |
 | `MODEL_TIMEOUT` | `120` | Seconds to wait for the model |
 | `ALLOWED_ORIGINS` | `*` | Comma-separated CORS origins |
-| `PORT` | `5000` | API port |
+| `PORT` |  `5001` | API port |
 
 To use your own trained model, register it with Ollama and point `OLLAMA_MODEL`
 at it:
@@ -77,7 +80,7 @@ OLLAMA_MODEL=my-interview-grader python app.py
 
 | Variable | Default | What it does |
 |---|---|---|
-| `VITE_API_BASE` | `http://localhost:5000` | API address |
+| `VITE_API_BASE` | `http://localhost:5001` | API address |
 | `VITE_TIMER_SECONDS` | `180` | Time per question before auto-submit |
 
 ---
