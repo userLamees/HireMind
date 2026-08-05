@@ -1,7 +1,15 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import os
 
 app = Flask(__name__)
+
+# Allow the Vue frontend (any origin, or a comma-separated ALLOWED_ORIGINS list)
+# to call /api/* from the browser. Without this the browser blocks every request.
+allowed_origins = os.environ.get('ALLOWED_ORIGINS', '*')
+if allowed_origins != '*':
+    allowed_origins = [o.strip() for o in allowed_origins.split(',') if o.strip()]
+CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
 
 @app.route('/api/analyze', methods=['POST'])
 def api_analyze():
