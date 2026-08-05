@@ -66,8 +66,8 @@ function next() {
         <p v-if="entry.question" class="asked">{{ entry.question.question }}</p>
 
         <div v-if="!usedModel" class="notice">
-          Scored without the AI model — this is a rough estimate only. Start Ollama
-          and try again for real feedback.
+          Scored without the AI model — this is a rough estimate only, not real
+          feedback.
         </div>
 
         <div class="block">

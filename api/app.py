@@ -24,7 +24,7 @@ def health():
         'status': 'ok',
         'questions_loaded': len(questions.QUESTIONS),
         'model_provider': analyzer.MODEL_PROVIDER,
-        'model': analyzer.OLLAMA_MODEL,
+        'model': analyzer.active_model(),
         'model_available': analyzer.model_available(),
     })
 

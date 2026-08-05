@@ -124,6 +124,78 @@ change.
 
 ---
 
+## Publishing a public link
+
+Ollama cannot run on a free host, so a public deploy swaps it for a hosted
+model. Three free pieces: **Render** for the API, **Render Static Site** for the
+frontend, **Groq** for the model.
+
+Deploy in this order — each step needs a URL from the one before it.
+
+### 1. Groq API key
+
+Create an account at [console.groq.com](https://console.groq.com) and generate a
+key (starts with `gsk_`). Check the current model list there too — names change,
+and `LLM_MODEL` must match one of them exactly.
+
+### 2. API → Render Web Service
+
+New → Web Service → this repo. Settings:
+
+| Field | Value |
+|---|---|
+| Root Directory | *(leave blank)* |
+| Build Command | `pip install -r requirements.txt` |
+| Start Command | *(leave blank — the `Procfile` handles it)* |
+
+Environment variables:
+
+```
+MODEL_PROVIDER = groq
+LLM_API_KEY    = gsk_...
+LLM_MODEL      = llama-3.3-70b-versatile
+```
+
+Deploy, then check `https://<your-api>.onrender.com/api/health` — it should
+report `"model_available": true`. Copy that base URL.
+
+### 3. Frontend → Render Static Site
+
+New → Static Site → this repo. Settings:
+
+| Field | Value |
+|---|---|
+| Root Directory | `frontend` |
+| Build Command | `npm ci && npm run build` |
+| Publish Directory | `dist` |
+
+Environment variable — **set this before the first build**:
+
+```
+VITE_API_BASE = https://<your-api>.onrender.com
+```
+
+> ⚠️ Vite bakes `VITE_*` variables into the bundle at **build** time, not at
+> runtime. Add it after deploying and the site will keep calling
+> `http://localhost:5001` until you trigger a rebuild.
+
+### 4. Lock down CORS
+
+Back on the API service, set `ALLOWED_ORIGINS` to the static site's URL and
+redeploy. The default `*` works but lets any site call your API.
+
+### What to expect
+
+- **Cold starts.** Render's free tier sleeps after inactivity; the first request
+  after a quiet period takes roughly a minute. Later requests are fast.
+- **Rate limits.** Groq's free tier is capped — fine for a demo or portfolio
+  link, not for real traffic.
+- **If the model fails**, the API still answers, labelled
+  `analysis_mode: "heuristic"`, and the UI shows a warning banner. Users get a
+  degraded experience rather than an error page.
+
+---
+
 ## API reference
 
 | Method | Path | Returns |

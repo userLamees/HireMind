@@ -188,11 +188,13 @@ def _heuristic(answer, reason=''):
     if has_structure:
         score += 5
 
+    # The remedy differs by deployment: locally you start Ollama, on a hosted
+    # instance you fix the API key — so the message stays neutral.
     return {
         'score': max(0, min(75, score)),
         'feedback': (
-            'The AI model is not running, so this is a rough word-count estimate '
-            'rather than a real evaluation. Start Ollama to get proper feedback.'
+            'The AI model is unavailable, so this is a rough word-count estimate '
+            'rather than a real evaluation.'
         ),
         'strengths': ['Answer submitted'] if word_count else [],
         'improvements': ['Run the model to receive real feedback'],
@@ -201,10 +203,30 @@ def _heuristic(answer, reason=''):
     }
 
 
-def model_available():
-    """Cheap reachability probe for the health endpoint."""
+def active_model():
+    """The model name that will actually be used, for the health endpoint."""
     if MODEL_PROVIDER in ('groq', 'openai_compatible'):
-        return bool(LLM_API_KEY)
+        return LLM_MODEL
+    if MODEL_PROVIDER == 'ollama':
+        return OLLAMA_MODEL
+    return None
+
+
+def model_available():
+    """Probe the configured backend. Reports reachability, not just config —
+    a present-but-invalid API key must not read as available."""
+    if MODEL_PROVIDER in ('groq', 'openai_compatible'):
+        if not LLM_API_KEY:
+            return False
+        try:
+            response = requests.get(
+                f'{LLM_BASE_URL.rstrip("/")}/models',
+                headers={'Authorization': f'Bearer {LLM_API_KEY}'},
+                timeout=5,
+            )
+            return response.status_code == 200
+        except requests.RequestException:
+            return False
 
     if MODEL_PROVIDER != 'ollama':
         return False
